@@ -33,6 +33,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define thresHold1 100
+#define step1 50
+#define thresHold2 300
+#define step2 10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -82,7 +86,7 @@ uint8_t fbuttonpressed1s = 0;
 uint32_t count1 = 0;
 uint32_t count2 = 0;
 uint32_t count = 0;
-uint8_t buf[51];
+uint8_t buf[50];
 char uart_buf[50];
 int uart_buf_len;
 /* USER CODE END PV */
@@ -96,82 +100,96 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_TIM16_Init(void);
 /* USER CODE BEGIN PFP */
 void readButton(void);
+void printCounter(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void printCounter(void)
+{
+	uart_buf_len = sprintf(uart_buf, "%lu\r\n", count);
+	HAL_UART_Transmit(&huart3, (uint8_t *) uart_buf, uart_buf_len, 100);
+}
+
 void readButton(void)
 {
+//	static char uart_buf[100];
+//	static int uart_buf_len;
+//
+//	static GPIO_PinState firstRead, secondRead = GPIO_PIN_RESET;
+//	GPIO_PinState state = GPIO_PIN_RESET;
+//	firstRead = secondRead;
+//	secondRead = HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin);
+//	if (firstRead==secondRead)
+//	{
+//		if (firstRead==GPIO_PIN_SET)
+//		{
+//			state = GPIO_PIN_SET;
+//		}
+//	}
+//	uart_buf_len = sprintf(uart_buf, "First read: %u \r\n", firstRead);
+//	HAL_UART_Transmit(&huart3, (uint8_t *) uart_buf, uart_buf_len, 10000);
+//	uart_buf_len = sprintf(uart_buf, "Second read: %u \r\n", secondRead);
+//	HAL_UART_Transmit(&huart3, (uint8_t *) uart_buf, uart_buf_len, 10000);
+//	return state;
 	firstRead = secondRead;
 	secondRead = HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin);
 	if (secondRead == firstRead)
 	{
 		if(firstRead)
 		{
-			if ( count == 0)count++;
+			//if (count == 0) count++;
+			//count++;
 			fbutton = 1;
 			count1++;
-			if(count1 >= 100)
+			if(count1 > thresHold1)
 			{
-				count1 = 100;
+				count1 = thresHold1;
 				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 				fbuttonpressed1s = 1;
 				count2++;
-				if ( (count2 == 50) | (count2 == 100) | (count2 == 150) )
+				if ((count2 % step1 == 0) && (count2 <= (thresHold2-thresHold1)))
 				{
 					count++;
+					printCounter();
 				}
-				if (count2 >= 200)
+				if (count2 > (thresHold2-thresHold1))
 				{
-					if (count2 == 210)
-					{
-						count2 = 200;
-						count++;
-					}
-					//count2 = 200;
 					HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+					if (count2-(thresHold2-thresHold1) == step2)
+					{
+						count2 = thresHold2-thresHold1;
+						count++;
+						printCounter();
+					}
 				}
 				else
 				{
 					HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 				}
 			}
-			else
-			{
-				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-				HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-//				fbutton = 0;
-//				fbuttonpressed1s = 0;
-//				count1 = 0;
-//				count2 = 0;
-			}
 		}
 		else
 		{
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
 			fbutton = 0;
 			fbuttonpressed1s = 0;
 			count1 = 0;
 			count2 = 0;
-			count = 0;
+			//count = 0;
 		}
 	}
-
-
-
-
-
-//
-//	if(HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin))
-//	{
-//		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-//	}
-//	else
-//	{
-//		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-//	}
+	if (!firstRead && secondRead)
+	{
+		count++;
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+		printCounter();
+	}
 }
+
+
 /* USER CODE END 0 */
 
 /**
@@ -181,7 +199,7 @@ void readButton(void)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	//uint16_t timer_val;
 
   /* USER CODE END 1 */
 
@@ -208,6 +226,15 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
+
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+  HAL_Delay(2000);
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+
   HAL_TIM_Base_Start_IT(&htim16);
   /* USER CODE END 2 */
 
@@ -215,6 +242,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//	  if (buttonState==GPIO_PIN_SET)
+//	  {
+//		  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+//	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -468,7 +500,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
@@ -479,8 +511,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD3_Pin LD2_Pin */
-  GPIO_InitStruct.Pin = LD3_Pin|LD2_Pin;
+  /*Configure GPIO pins : PB0 LD3_Pin LD2_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|LD3_Pin|LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -504,15 +536,14 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if (htim == & htim16)
+	if (htim == &htim16)
 	{
-		//HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 		readButton();
-		uart_buf_len = sprintf(uart_buf, "%lu\r\n", count);
-		HAL_UART_Transmit(&huart3, (uint8_t *) uart_buf, uart_buf_len, 100);
-
+		/*uart_buf_len = sprintf(uart_buf, "%lu\r\n", count);
+		HAL_UART_Transmit(&huart3, (uint8_t *) uart_buf, uart_buf_len, 100);*/
 	}
 }
+
 /* USER CODE END 4 */
 
 /**
