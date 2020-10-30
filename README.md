@@ -1,2 +1,3 @@
 # STM32
-My Lab2 in MPMC.
+Lab 2 -Timers and Buttons! 
+#My Lab2 in MPMC.
