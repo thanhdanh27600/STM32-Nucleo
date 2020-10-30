@@ -82,7 +82,7 @@ uint8_t fbuttonpressed1s = 0;
 uint32_t count1 = 0;
 uint32_t count2 = 0;
 uint32_t count = 0;
-uint8_t buf[500];
+uint8_t buf[50];
 char uart_buf[50];
 int uart_buf_len;
 /* USER CODE END PV */
